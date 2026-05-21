@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: finlock-postgres
+    environment:
+      POSTGRES_DB: finlock
+      POSTGRES_USER: finlock_user
+      POSTGRES_PASSWORD: finlock_pass
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
