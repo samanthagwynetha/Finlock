@@ -29,3 +29,7 @@ server:
 logging:
   level:
     org.flywaydb: DEBUG
+
+jwt:
+  secret: finlock-super-secret-key-that-is-at-least-32-characters-long
+  expiration: 86400000
