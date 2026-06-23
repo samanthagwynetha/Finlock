@@ -6,6 +6,8 @@ import com.finlock.finlock.auth.dto.RegisterRequest;
 import com.finlock.finlock.auth.dto.RegisterResponse;
 import com.finlock.finlock.auth.entity.User;
 import com.finlock.finlock.auth.repository.UserRepository;
+import com.finlock.finlock.common.exception.EmailAlreadyExistsException;
+import com.finlock.finlock.common.exception.InvalidCredentialsException;
 import com.finlock.finlock.common.security.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -21,7 +23,7 @@ public class AuthService {
 
     public RegisterResponse register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Email already in use");
+            throw new EmailAlreadyExistsException("Email already in use");
         }
 
         User user = User.builder()
@@ -41,9 +43,9 @@ public class AuthService {
 
     public LoginResponse login(LoginRequest request){
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("Invalid email or password"));
+                .orElseThrow(() -> new InvalidCredentialsException("Invalid email or password"));
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new RuntimeException("Invalid password");
+            throw new InvalidCredentialsException("Invalid email or password");
         }
         String token = jwtUtil.generateToken(user.getEmail());
 
