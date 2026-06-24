@@ -2,10 +2,13 @@ package com.finlock.finlock.wallet.service;
 
 import com.finlock.finlock.auth.entity.User;
 import com.finlock.finlock.common.exception.WalletAlreadyExistsException;
+import com.finlock.finlock.common.exception.WalletNotFoundException;
+import com.finlock.finlock.wallet.dto.DepositRequest;
 import com.finlock.finlock.wallet.dto.WalletResponse;
 import com.finlock.finlock.wallet.dto.CreateWalletRequest;
 import com.finlock.finlock.wallet.entity.Wallet;
 import com.finlock.finlock.wallet.repository.WalletRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -59,6 +62,25 @@ public class WalletService {
                         .build())
                 .collect(Collectors.toList());
 
+    }
+
+    @Transactional
+    public WalletResponse deposit(User user, DepositRequest request) {
+        Wallet wallet = walletRepository.findByUserIdAndCurrency(user.getId(), request.getCurrency())
+                .orElseThrow(() -> new WalletNotFoundException(
+                        "No wallet found for currency: " + request.getCurrency()));
+
+        BigDecimal newBalance = wallet.getBalance().add(request.getAmount());
+        wallet.setBalance(newBalance);
+
+        Wallet updated = walletRepository.save(wallet);
+
+        return WalletResponse.builder()
+                .id(updated.getId())
+                .currency(updated.getCurrency())
+                .balance(updated.getBalance())
+                .createdAt(updated.getCreatedAt())
+                .build();
     }
 
 }
