@@ -3,6 +3,7 @@ package com.finlock.finlock.wallet.controller;
 import com.finlock.finlock.auth.entity.User;
 import com.finlock.finlock.common.response.ApiResponse;
 import com.finlock.finlock.wallet.dto.CreateWalletRequest;
+import com.finlock.finlock.wallet.dto.DepositRequest;
 import com.finlock.finlock.wallet.dto.WalletResponse;
 import com.finlock.finlock.wallet.service.WalletService;
 import jakarta.validation.Valid;
@@ -41,6 +42,17 @@ public class WalletController {
 
         return ResponseEntity.ok(
                 ApiResponse.success("Wallets retrieved successfully", wallets)
+        );
+    }
+
+    @PostMapping("/deposit")
+    public ResponseEntity<ApiResponse<WalletResponse>> deposit(
+            @AuthenticationPrincipal User user,
+            @Valid @RequestBody DepositRequest request) {
+        WalletResponse response = walletService.deposit(user, request);
+
+        return ResponseEntity.ok(
+                ApiResponse.success("Deposit successful", response)
         );
     }
 }
