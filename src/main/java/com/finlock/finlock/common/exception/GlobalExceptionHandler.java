@@ -50,4 +50,20 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error("Something went wrong. Please try again"));
     }
 
+    @ExceptionHandler(WalletAlreadyExistsException.class)
+    public ResponseEntity<ApiResponse<Void>> handleWalletExists(WalletAlreadyExistsException ex) {
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(ApiResponse.error(ex.getMessage()));
+    }
+
+    @ExceptionHandler(org.springframework.web.servlet.resource.NoResourceFoundException.class)
+    public ResponseEntity<ApiResponse<Void>> handleNotFound(
+            org.springframework.web.servlet.resource.NoResourceFoundException ex) {
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(ApiResponse.error("The requested endpoint does not exist"));
+
+    }
+
 }
