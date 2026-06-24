@@ -66,4 +66,11 @@ public class GlobalExceptionHandler {
 
     }
 
+    @ExceptionHandler(WalletNotFoundException.class)
+    public ResponseEntity<ApiResponse<Void>> handleWalletNotFound(WalletNotFoundException ex){
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(ApiResponse.error(ex.getMessage()));
+    }
+
 }
