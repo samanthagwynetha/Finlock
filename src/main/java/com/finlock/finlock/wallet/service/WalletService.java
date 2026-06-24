@@ -10,6 +10,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -43,6 +45,20 @@ public class WalletService {
                 .balance(saved.getBalance())
                 .createdAt(saved.getCreatedAt())
                 .build();
+    }
+
+    public List<WalletResponse> getMyWallets(User user){
+        List<Wallet> wallets = walletRepository.findByUserId(user.getId());
+
+        return wallets.stream()
+                .map(wallet -> WalletResponse.builder()
+                        .id(wallet.getId())
+                        .currency(wallet.getCurrency())
+                        .balance(wallet.getBalance())
+                        .createdAt(wallet.getCreatedAt())
+                        .build())
+                .collect(Collectors.toList());
+
     }
 
 }
