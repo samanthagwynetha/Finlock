@@ -79,4 +79,22 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.UNPROCESSABLE_ENTITY)
                 .body(ApiResponse.error(ex.getMessage()));
     }
+
+    @ExceptionHandler(org.springframework.http.converter.HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMalformedJson(
+            org.springframework.http.converter.HttpMessageNotReadableException ex) {
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error("Malformed JSON Request. Please check your request body."));
+    }
+
+    @ExceptionHandler(org.springframework.web.HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMethodNotSupported(
+            org.springframework.web.HttpRequestMethodNotSupportedException ex) {
+        return ResponseEntity
+                .status(HttpStatus.METHOD_NOT_ALLOWED) // 405
+                .body(ApiResponse.error(
+                        "HTTP method '" + ex.getMethod() + "' is not supported for this endpoint."
+                ));
+    }
 }
