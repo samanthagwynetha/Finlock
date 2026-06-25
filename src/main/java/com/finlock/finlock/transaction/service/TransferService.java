@@ -12,9 +12,11 @@ import com.finlock.finlock.transaction.entity.Transaction;
 import com.finlock.finlock.transaction.repository.TransactionRepository;
 import com.finlock.finlock.wallet.entity.Wallet;
 import com.finlock.finlock.wallet.repository.WalletRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -24,7 +26,22 @@ public class TransferService {
     private final UserRepository userRepository;
     private final TransactionRepository transactionRepository;
 
-    public TransferResponse transfer(User sender, TransferRequest request) {
+    @Transactional
+    public TransferResponse transfer(User sender, TransferRequest request, String idempotencyKey) {
+
+        Optional<Transaction> existing = transactionRepository.findByIdempotencyKey(idempotencyKey);
+        if (existing.isPresent()) {
+            Transaction previous = existing.get();
+            return TransferResponse.builder()
+                    .transactionId(previous.getId())
+                    .recipientEmail(previous.getToWallet().getUser().getEmail())
+                    .amount(previous.getAmount())
+                    .currency(previous.getCurrency())
+                    .senderNewBalance(previous.getFromWallet().getBalance())
+                    .status(previous.getStatus())
+                    .createdAt(previous.getCreatedAt())
+                    .build();
+        }
 
         //Find receipt user by email
         User recipient = userRepository.findByEmail(request.getRecipientEmail())
@@ -69,7 +86,7 @@ public class TransferService {
                 .amount(request.getAmount())
                 .currency(request.getCurrency())
                 .status("COMPLETED")
-                .idempotencyKey(UUID.randomUUID().toString())
+                .idempotencyKey(idempotencyKey)
                 .build();
 
         Transaction saved = transactionRepository.save(transaction);
