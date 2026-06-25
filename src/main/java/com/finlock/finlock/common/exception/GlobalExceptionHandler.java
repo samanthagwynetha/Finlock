@@ -97,4 +97,18 @@ public class GlobalExceptionHandler {
                         "HTTP method '" + ex.getMethod() + "' is not supported for this endpoint."
                 ));
     }
+
+    @ExceptionHandler(RecipientNotFoundException.class)
+    public ResponseEntity<ApiResponse<Void>> handleRecipientNotFound(RecipientNotFoundException ex){
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(ApiResponse.error(ex.getMessage()));
+    }
+
+    @ExceptionHandler(SelfTransferException.class)
+    public ResponseEntity<ApiResponse<Void>> handleSelfTransfer(SelfTransferException ex) {
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error(ex.getMessage()));
+    }
 }

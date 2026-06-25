@@ -1,4 +1,7 @@
 package com.finlock.finlock.common.exception;
 
-public class RecipientNotFoundException {
+public class RecipientNotFoundException extends RuntimeException {
+    public RecipientNotFoundException(String message) {
+        super(message);
+    }
 }

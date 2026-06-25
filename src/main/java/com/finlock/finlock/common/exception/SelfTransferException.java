@@ -1,4 +1,8 @@
 package com.finlock.finlock.common.exception;
 
-public class SelftTransferException {
+public class SelfTransferException extends RuntimeException{
+    public SelfTransferException(String message){
+        super(message);
+    }
+
 }
