@@ -2,10 +2,8 @@ package com.finlock.finlock.transaction.service;
 
 import com.finlock.finlock.auth.entity.User;
 import com.finlock.finlock.auth.repository.UserRepository;
-import com.finlock.finlock.common.exception.InsufficientBalanceException;
-import com.finlock.finlock.common.exception.RecipientNotFoundException;
-import com.finlock.finlock.common.exception.SelfTransferException;
-import com.finlock.finlock.common.exception.WalletNotFoundException;
+import com.finlock.finlock.common.exception.*;
+import com.finlock.finlock.common.lock.DistributedLockService;
 import com.finlock.finlock.transaction.dto.TransferRequest;
 import com.finlock.finlock.transaction.dto.TransferResponse;
 import com.finlock.finlock.transaction.entity.Transaction;
@@ -16,6 +14,7 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -25,6 +24,7 @@ public class TransferService {
     private final WalletRepository walletRepository;
     private final UserRepository userRepository;
     private final TransactionRepository transactionRepository;
+    private final DistributedLockService lockService;
 
     @Transactional
     public TransferResponse transfer(User sender, TransferRequest request, String idempotencyKey) {
@@ -65,40 +65,67 @@ public class TransferService {
                         "Recipient doesn't have a wallet for currency: " + request.getCurrency()
                 ));
 
-        // Balance check
-        if (senderWallet.getBalance().compareTo(request.getAmount()) <0) {
-            throw new InsufficientBalanceException(
-                    "Insufficient balance. Current balance: " + senderWallet.getBalance()
-            );
+        String firstId = senderWallet.getId().toString();
+        String secondId = recipientWallet.getId().toString();
+        boolean senderFirst = firstId.compareTo(secondId) < 0;
+
+        String lockKeyA = senderFirst ? firstId: secondId;
+        String lockKeyB = senderFirst ? secondId: firstId;
+
+        String lockTokenA = lockService.tryLock(lockKeyA, Duration.ofSeconds(5));
+
+        if (lockTokenA == null) {
+            throw new TransferInProgressException("Another transfer is already in progress. Please try again.");
+
         }
 
-        //  Move the money
-        senderWallet.setBalance(senderWallet.getBalance().subtract(request.getAmount()));
-        recipientWallet.setBalance(recipientWallet.getBalance().add(request.getAmount()));
+        String lockTokenB = lockService.tryLock(lockKeyB, Duration.ofSeconds(5));
+        if (lockTokenB == null) {
+            lockService.unlock(lockKeyA, lockTokenA);
+            throw new TransferInProgressException("Another transfer is already in progress. Please try again");
+        }
 
-        walletRepository.save(senderWallet);
-        walletRepository.save(recipientWallet);
+        try {
+            // Balance check
+            if (senderWallet.getBalance().compareTo(request.getAmount()) <0) {
+                throw new InsufficientBalanceException(
+                        "Insufficient balance. Current balance: " + senderWallet.getBalance()
+                );
+            }
 
-        // Record the transfer as an immutable transaction log entry
-        Transaction transaction = Transaction.builder()
-                .fromWallet(senderWallet)
-                .toWallet(recipientWallet)
-                .amount(request.getAmount())
-                .currency(request.getCurrency())
-                .status("COMPLETED")
-                .idempotencyKey(idempotencyKey)
-                .build();
+            //  Move the money
+            senderWallet.setBalance(senderWallet.getBalance().subtract(request.getAmount()));
+            recipientWallet.setBalance(recipientWallet.getBalance().add(request.getAmount()));
 
-        Transaction saved = transactionRepository.save(transaction);
+            walletRepository.save(senderWallet);
+            walletRepository.save(recipientWallet);
 
-        return TransferResponse.builder()
-                .transactionId(saved.getId())
-                .recipientEmail(recipient.getEmail())
-                .amount(saved.getAmount())
-                .currency(saved.getCurrency())
-                .senderNewBalance(senderWallet.getBalance())
-                .status(saved.getStatus())
-                .createdAt(saved.getCreatedAt())
-                .build();
+            // Record the transfer as an immutable transaction log entry
+            Transaction transaction = Transaction.builder()
+                    .fromWallet(senderWallet)
+                    .toWallet(recipientWallet)
+                    .amount(request.getAmount())
+                    .currency(request.getCurrency())
+                    .status("COMPLETED")
+                    .idempotencyKey(idempotencyKey)
+                    .build();
+
+            Transaction saved = transactionRepository.save(transaction);
+
+            return TransferResponse.builder()
+                    .transactionId(saved.getId())
+                    .recipientEmail(recipient.getEmail())
+                    .amount(saved.getAmount())
+                    .currency(saved.getCurrency())
+                    .senderNewBalance(senderWallet.getBalance())
+                    .status(saved.getStatus())
+                    .createdAt(saved.getCreatedAt())
+                    .build();
+        } finally {
+            lockService.unlock(lockKeyB, lockTokenB);
+            lockService.unlock(lockKeyA, lockTokenA);
+        }
+
+
     }
 }
