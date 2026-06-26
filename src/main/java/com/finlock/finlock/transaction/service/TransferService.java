@@ -4,6 +4,7 @@ import com.finlock.finlock.auth.entity.User;
 import com.finlock.finlock.auth.repository.UserRepository;
 import com.finlock.finlock.common.exception.*;
 import com.finlock.finlock.common.lock.DistributedLockService;
+import com.finlock.finlock.transaction.dto.TransactionHistoryResponse;
 import com.finlock.finlock.transaction.dto.TransferRequest;
 import com.finlock.finlock.transaction.dto.TransferResponse;
 import com.finlock.finlock.transaction.entity.Transaction;
@@ -15,8 +16,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -127,5 +128,37 @@ public class TransferService {
         }
 
 
+    }
+
+    public List<TransactionHistoryResponse> getTransactionHistory(User user) {
+        List<Wallet> userWallets = walletRepository.findByUserId(user.getId());
+
+        Set<Transaction> allTransactions = new LinkedHashSet<>();
+        for (Wallet wallet: userWallets) {
+            allTransactions.addAll(
+                    transactionRepository.findByFromWalletIdOrToWalletId(wallet.getId(), wallet.getId())
+            );
+        }
+
+        return allTransactions.stream()
+                .sorted(Comparator.comparing(Transaction::getCreatedAt).reversed())
+                .map(tx -> {
+                    boolean isSender = tx.getFromWallet().getUser().getId().equals(user.getId());
+                    String direction = isSender ? "SENT" : "RECEIVED";
+                    String counterpartyEmail = isSender
+                            ? tx.getToWallet().getUser().getEmail()
+                            : tx.getFromWallet().getUser().getEmail();
+
+                    return TransactionHistoryResponse.builder()
+                            .transactionId(tx.getId())
+                            .direction(direction)
+                            .counterpartyEmail(counterpartyEmail)
+                            .amount(tx.getAmount())
+                            .currency(tx.getCurrency())
+                            .status(tx.getStatus())
+                            .createdAt(tx.getCreatedAt())
+                            .build();
+                })
+                .collect(Collectors.toList());
     }
 }
