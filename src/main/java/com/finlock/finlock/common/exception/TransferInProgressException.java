@@ -1,4 +1,7 @@
 package com.finlock.finlock.common.exception;
 
-public class TransferInProgresException {
+public class TransferInProgressException extends RuntimeException {
+   public TransferInProgressException(String message) {
+      super(message);
+   }
 }

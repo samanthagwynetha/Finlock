@@ -111,4 +111,11 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.BAD_REQUEST)
                 .body(ApiResponse.error(ex.getMessage()));
     }
+
+    @ExceptionHandler(TransferInProgressException.class)
+    public ResponseEntity<ApiResponse<Void>> handleTransferInProgress(TransferInProgressException ex) {
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(ApiResponse.error(ex.getMessage()));
+    }
 }
