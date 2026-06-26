@@ -2,6 +2,7 @@ package com.finlock.finlock.transaction.controller;
 
 import com.finlock.finlock.auth.entity.User;
 import com.finlock.finlock.common.response.ApiResponse;
+import com.finlock.finlock.transaction.dto.TransactionHistoryResponse;
 import com.finlock.finlock.transaction.dto.TransferRequest;
 import com.finlock.finlock.transaction.dto.TransferResponse;
 import com.finlock.finlock.transaction.service.TransferService;
@@ -10,6 +11,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/transfers")
@@ -27,6 +30,16 @@ public class TransferController {
 
         return ResponseEntity.ok(
                 ApiResponse.success("Transfer completed successfully", response)
+        );
+    }
+
+    @GetMapping
+    public ResponseEntity<ApiResponse<List<TransactionHistoryResponse>>> getHistory(
+            @AuthenticationPrincipal User user) {
+
+        List<TransactionHistoryResponse> history = transferService.getTransactionHistory(user);
+        return ResponseEntity.ok(
+                ApiResponse.success("Transaction history retrieved successfully", history)
         );
     }
 }
