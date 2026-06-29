@@ -1,7 +1,9 @@
 package com.finlock.finlock.wallet.entity;
 
 import com.finlock.finlock.auth.entity.User;
+import com.finlock.finlock.common.encryption.EncryptedBigDecimalConverter;
 import jakarta.persistence.*;
+import jakarta.persistence.Convert;
 import lombok.*;
 import org.springframework.cglib.core.Local;
 
@@ -31,7 +33,8 @@ public class Wallet {
     @Column(nullable = false, length = 3)
     private String currency;
 
-    @Column(nullable = false, precision = 19, scale = 4)
+    @Convert(converter = EncryptedBigDecimalConverter.class)
+    @Column(name = "balance", nullable = false, length = 255)
     private BigDecimal balance;
 
     @Column(name = "created_at", nullable = false, updatable = false)
