@@ -6,6 +6,8 @@ import com.finlock.finlock.transaction.dto.TransactionHistoryResponse;
 import com.finlock.finlock.transaction.dto.TransferRequest;
 import com.finlock.finlock.transaction.dto.TransferResponse;
 import com.finlock.finlock.transaction.service.TransferService;
+import com.finlock.finlock.audit.service.AuditLogService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -19,18 +21,33 @@ import java.util.List;
 @RequiredArgsConstructor
 public class TransferController {
     private final TransferService transferService;
+    private final AuditLogService auditLogService;
 
     @PostMapping
     public ResponseEntity<ApiResponse<TransferResponse>> transfer (
             @AuthenticationPrincipal User sender,
             @Valid @RequestBody TransferRequest request,
-            @RequestHeader("Idempotency-Key") String idempotencyKey){
+            @RequestHeader("Idempotency-Key") String idempotencyKey,
+            HttpServletRequest httpRequest) {
 
-        TransferResponse response = transferService.transfer(sender, request, idempotencyKey);
+        String ipAdress = httpRequest.getRemoteAddr();
 
-        return ResponseEntity.ok(
-                ApiResponse.success("Transfer completed successfully", response)
-        );
+        try {
+            TransferResponse response = transferService.transfer(sender, request, idempotencyKey);
+            auditLogService.log(sender.getId(), "TRANSFER_COMPLETED",
+                    String.format("Transferred %s %s to %s",
+                            response.getAmount(), response.getCurrency(), response.getRecipientEmail()),
+                    ipAdress);
+            return ResponseEntity.ok(
+                    ApiResponse.success("Transfer completed successfully", response)
+            );
+        } catch (Exception e) {
+            auditLogService.log(sender.getId(), "TRANSFER_FAILED",
+                    String.format("Failed transfer attempt to %s: %s",
+                            request.getRecipientEmail(), e.getMessage()),
+                    ipAdress);
+            throw e;
+        }
     }
 
     @GetMapping
