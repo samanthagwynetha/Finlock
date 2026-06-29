@@ -38,3 +38,6 @@ logging:
 jwt:
   secret: finlock-super-secret-key-that-is-at-least-32-characters-long
   expiration: 86400000
+
+encryption:
+  aes-key: gYI00qX+W10Xr/ProqszHwkZOCVgFLP3u+x4Nm40E9I=
