@@ -8,14 +8,15 @@ import com.finlock.finlock.auth.service.AuthService;
 import com.finlock.finlock.common.response.ApiResponse;
 import com.finlock.finlock.common.exception.RateLimitExceededException;
 import com.finlock.finlock.common.ratelimit.RateLimiterService;
+import com.finlock.finlock.audit.service.AuditLogService;
 import java.time.Duration;
+
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.time.Duration;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -24,6 +25,7 @@ public class AuthController {
 
     private final AuthService authService;
     private final RateLimiterService rateLimiterService;
+    private final AuditLogService auditLogService;
 
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<RegisterResponse>> register(
@@ -36,7 +38,10 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<LoginResponse>> login(
-            @Valid @RequestBody LoginRequest request) {
+            @Valid @RequestBody LoginRequest request,
+            HttpServletRequest httpRequest) {
+
+        String ipAddress = httpRequest.getRemoteAddr();
 
         boolean allowed = rateLimiterService.tryConsume(
                 "login:" + request.getEmail(),
@@ -45,12 +50,25 @@ public class AuthController {
         );
 
         if (!allowed) {
+            auditLogService.log(null, "LOGIN_RATE_LIMITED",
+                    "Login rate limit exceeded for email: " + request.getEmail(), ipAddress);
             throw new RateLimitExceededException(
                     "Too many login attempts. Please try again in a minute."
             );
         }
 
-        LoginResponse response = authService.login(request);
-        return ResponseEntity.ok(ApiResponse.success("Login successfully", response));
+        try {
+            LoginResponse response = authService.login(request);
+
+            auditLogService.log(null, "LOGIN_SUCCESS",
+                    "Successful login for email: " + request.getEmail(), ipAddress);
+
+            return ResponseEntity.ok(ApiResponse.success("Login successful", response));
+
+        } catch (Exception e) {
+            auditLogService.log(null, "LOGIN_FAILED",
+                    "Failed login attempt for email: " + request.getEmail(), ipAddress);
+            throw e;
+        }
     }
 }
