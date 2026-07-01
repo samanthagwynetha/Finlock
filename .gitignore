@@ -8,3 +8,4 @@ target/
 application-prod.yml
 *.log
 .DS_Store
+.env

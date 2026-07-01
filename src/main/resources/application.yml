@@ -31,13 +31,14 @@ spring:
 server:
   port: 8080
 
+jwt:
+  secret: ${JWT_SECRET:finlock-super-secret-key-that-is-at-least-32-characters-long}
+  expiration: ${JWT_EXPIRATION:86400000}
+
+encryption:
+  aes-key: ${AES_KEY:gYI00qX+W10Xr/ProqszHwkZOCVgFLP3u+x4Nm40E9I=}
+
 logging:
   level:
     org.flywaydb: DEBUG
 
-jwt:
-  secret: finlock-super-secret-key-that-is-at-least-32-characters-long
-  expiration: 86400000
-
-encryption:
-  aes-key: gYI00qX+W10Xr/ProqszHwkZOCVgFLP3u+x4Nm40E9I=
