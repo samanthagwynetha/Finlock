@@ -37,7 +37,6 @@ public class NotificationService {
     }
 
     private void sendEmail(String toEmail, String subject, String message) {
-
         log.info("📧 [EMAIL SIMULATED] To: {} | Subject: {} | Message: {}",
                 toEmail, subject, message);
 
