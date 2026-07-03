@@ -13,26 +13,31 @@ public class TransactionEventConsumer {
 
     private final NotificationService notificationService;
 
-    @KafkaListener(topics = TransactionEventProducer.TOPIC, groupId = "finlock-group")
+    @KafkaListener(
+            topics = TransactionEventProducer.TOPIC,
+            groupId = "finlock-group",
+            containerFactory = "kafkaListenerContainerFactory"
+    )
     public void consume(TransactionEvent event) {
+        System.out.println("CONSUMER CALLED for: " + event.getTransactionId());
         log.info("Processing TransactionEvent for transaction {}", event.getTransactionId());
 
-        try{
-            if ("COMPLETED".equals(event.getStatus())) {
+        if ("COMPLETED".equals(event.getStatus())) {
+            try {
                 notificationService.notifyTransfer(
                         event.getSenderEmail(),
                         event.getRecipientEmail(),
                         event.getAmount(),
                         event.getCurrency()
                 );
+            } catch (Exception e) {
+                System.out.println("EXCEPTION CAUGHT IN CONSUMER: " + e.getMessage());
+                // Re-throw so Kafka error handler can retry and route to DLT
+                throw e;
             }
-
-            log.info("Successfully processed TransactionEvent for transaction {}",
-                    event.getTransactionId());
-
-        } catch (Exception e) {
-            log.error("Failed to process TransactionEvent for transcation {}:{}",
-                    event.getTransactionId(), e.getMessage());
         }
+
+        log.info("Successfully processed TransactionEvent for transaction {}",
+                event.getTransactionId());
     }
 }
