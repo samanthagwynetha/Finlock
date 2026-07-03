@@ -12,7 +12,7 @@ public class TransactionEventProducer {
 
     private final KafkaTemplate<String, TransactionEvent> kafkaTemplate;
 
-    public static final String TOPIC = "finlock.transaction";
+    public static final String TOPIC = "finlock.transactions";
 
 
     public void publish(TransactionEvent event) {
