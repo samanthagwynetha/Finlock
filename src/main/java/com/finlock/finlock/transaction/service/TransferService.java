@@ -8,6 +8,8 @@ import com.finlock.finlock.transaction.dto.TransactionHistoryResponse;
 import com.finlock.finlock.transaction.dto.TransferRequest;
 import com.finlock.finlock.transaction.dto.TransferResponse;
 import com.finlock.finlock.transaction.entity.Transaction;
+import com.finlock.finlock.transaction.event.TransactionEvent;
+import com.finlock.finlock.transaction.event.TransactionEventProducer;
 import com.finlock.finlock.transaction.repository.TransactionRepository;
 import com.finlock.finlock.wallet.entity.Wallet;
 import com.finlock.finlock.wallet.repository.WalletRepository;
@@ -26,6 +28,7 @@ public class TransferService {
     private final UserRepository userRepository;
     private final TransactionRepository transactionRepository;
     private final DistributedLockService lockService;
+    private final TransactionEventProducer eventProducer;
 
     @Transactional
     public TransferResponse transfer(User sender, TransferRequest request, String idempotencyKey) {
@@ -112,6 +115,16 @@ public class TransferService {
                     .build();
 
             Transaction saved = transactionRepository.save(transaction);
+
+            eventProducer.publish(TransactionEvent.builder()
+                    .transactionId(saved.getId())
+                    .senderEmail(sender.getEmail())
+                    .recipientEmail(recipient.getEmail())
+                    .amount(saved.getAmount())
+                    .currency(saved.getCurrency())
+                    .status(saved.getStatus())
+                    .occurredAt(saved.getCreatedAt())
+                    .build());
 
             return TransferResponse.builder()
                     .transactionId(saved.getId())
