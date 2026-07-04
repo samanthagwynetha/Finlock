@@ -43,7 +43,8 @@ spring:
       properties:
         spring.json.trusted.packages: "com.finlock.finlock.*"
         spring.json.value.default.type: "com.finlock.finlock.transaction.event.TransactionEvent"
-
+      listener:
+        ack-mode: batch
 server:
   port: 8080
 
