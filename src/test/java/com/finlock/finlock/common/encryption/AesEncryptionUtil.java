@@ -15,7 +15,7 @@ public class AesEncryptionUtil {
     @Value("${encryption.aes-key}")
     private String base64Key;
 
-    private static final String ALGORITHM = "AES/GSM/NoPadding";
+    private static final String ALGORITHM = "AES/GCM/NoPadding";
     private static final int GCM_TAG_LENGTH = 128;
     private static final int IV_LENGTH = 12;
 

@@ -1,7 +1,6 @@
 package com.finlock.finlock.common.exception;
 
 import com.finlock.finlock.common.response.ApiResponse;
-import org.apache.catalina.connector.Response;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
