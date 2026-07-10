@@ -27,3 +27,9 @@ services:
         value: localhost:9092
       - key: SPRING_PROFILES_ACTIVE
         value: render
+
+databases:
+  - name: finlock-db
+    plan: free
+    databaseName: finlock
+    user: finlock_user
