@@ -1,6 +1,13 @@
 # Render deployment profile
 # Redis and Kafka not available on free tier — disabled gracefully
 spring:
+  jpa:
+    hibernate:
+      ddl-auto: update
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: 0
   kafka:
     listener:
       missing-topics-fatal: false
