@@ -1,8 +1,9 @@
 services:
   - type: web
     name: finlock-api
-    runtime: docker
-    dockerfilePath: ./Dockerfile
+    runtime: java
+    buildCommand: ./mvnw clean package -DskipTests
+    startCommand: java -jar target/*.jar
     plan: free
     envVars:
       - key: SPRING_DATASOURCE_URL
@@ -21,12 +22,12 @@ services:
         value: finlock-super-secret-key-that-is-at-least-32-characters-long
       - key: AES_KEY
         value: gYI00qX+W10Xr/ProqszHwkZOCVgFLP3u+x4Nm40E9I=
-      - key: SPRING_DATA_REDIS_HOST
-        value: localhost
-      - key: SPRING_KAFKA_BOOTSTRAP_SERVERS
-        value: localhost:9092
       - key: SPRING_PROFILES_ACTIVE
         value: render
+      - key: SPRING_KAFKA_BOOTSTRAP_SERVERS
+        value: localhost:9092
+      - key: JAVA_VERSION
+        value: "21"
 
 databases:
   - name: finlock-db
