@@ -1,6 +1,7 @@
 package com.finlock.finlock.common.lock;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -9,6 +10,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@ConditionalOnBean(StringRedisTemplate.class)
 public class DistributedLockService {
 
     private final StringRedisTemplate redisTemplate;

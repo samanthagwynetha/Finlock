@@ -13,10 +13,12 @@ import com.finlock.finlock.transaction.event.TransactionEventProducer;
 import com.finlock.finlock.transaction.repository.TransactionRepository;
 import com.finlock.finlock.wallet.entity.Wallet;
 import com.finlock.finlock.wallet.repository.WalletRepository;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -24,15 +26,21 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class TransferService {
+
     private final WalletRepository walletRepository;
     private final UserRepository userRepository;
     private final TransactionRepository transactionRepository;
-    private final DistributedLockService lockService;
     private final TransactionEventProducer eventProducer;
+
+    // Optional — only injected when Redis is available (local/production with Redis)
+    // On Render free tier (no Redis), this is null and locking is skipped gracefully
+    @Autowired(required = false)
+    private DistributedLockService lockService;
 
     @Transactional
     public TransferResponse transfer(User sender, TransferRequest request, String idempotencyKey) {
 
+        // Idempotency check — always first
         Optional<Transaction> existing = transactionRepository.findByIdempotencyKey(idempotencyKey);
         if (existing.isPresent()) {
             Transaction previous = existing.get();
@@ -47,21 +55,18 @@ public class TransferService {
                     .build();
         }
 
-        //Find receipt user by email
         User recipient = userRepository.findByEmail(request.getRecipientEmail())
                 .orElseThrow(() -> new RecipientNotFoundException(
                         "No user found with email: " + request.getRecipientEmail()
-        ));
+                ));
 
-        // Block self-transfer before touching any wallet data
         if (sender.getId().equals(recipient.getId())) {
             throw new SelfTransferException("You cannot transfer money to yourself");
         }
 
-        // Find sender & recipient wallet for the given currency
-        Wallet senderWallet =  walletRepository.findByUserIdAndCurrency(sender.getId(), request.getCurrency())
+        Wallet senderWallet = walletRepository.findByUserIdAndCurrency(sender.getId(), request.getCurrency())
                 .orElseThrow(() -> new WalletNotFoundException(
-                        "Recipient doesn't have a wallet for currency: " + request.getCurrency()
+                        "You don't have a wallet for currency: " + request.getCurrency()
                 ));
 
         Wallet recipientWallet = walletRepository.findByUserIdAndCurrency(recipient.getId(), request.getCurrency())
@@ -69,42 +74,44 @@ public class TransferService {
                         "Recipient doesn't have a wallet for currency: " + request.getCurrency()
                 ));
 
+        // Consistent lock ordering to prevent deadlocks
         String firstId = senderWallet.getId().toString();
         String secondId = recipientWallet.getId().toString();
         boolean senderFirst = firstId.compareTo(secondId) < 0;
+        String lockKeyA = senderFirst ? firstId : secondId;
+        String lockKeyB = senderFirst ? secondId : firstId;
 
-        String lockKeyA = senderFirst ? firstId: secondId;
-        String lockKeyB = senderFirst ? secondId: firstId;
+        // Acquire locks only if Redis is available
+        String lockTokenA = null;
+        String lockTokenB = null;
 
-        String lockTokenA = lockService.tryLock(lockKeyA, Duration.ofSeconds(5));
-
-        if (lockTokenA == null) {
-            throw new TransferInProgressException("Another transfer is already in progress. Please try again.");
-
-        }
-
-        String lockTokenB = lockService.tryLock(lockKeyB, Duration.ofSeconds(5));
-        if (lockTokenB == null) {
-            lockService.unlock(lockKeyA, lockTokenA);
-            throw new TransferInProgressException("Another transfer is already in progress. Please try again");
+        if (lockService != null) {
+            lockTokenA = lockService.tryLock(lockKeyA, Duration.ofSeconds(5));
+            if (lockTokenA == null) {
+                throw new TransferInProgressException(
+                        "Another transfer is already in progress. Please try again.");
+            }
+            lockTokenB = lockService.tryLock(lockKeyB, Duration.ofSeconds(5));
+            if (lockTokenB == null) {
+                lockService.unlock(lockKeyA, lockTokenA);
+                throw new TransferInProgressException(
+                        "Another transfer is already in progress. Please try again.");
+            }
         }
 
         try {
-            // Balance check
-            if (senderWallet.getBalance().compareTo(request.getAmount()) <0) {
+            if (senderWallet.getBalance().compareTo(request.getAmount()) < 0) {
                 throw new InsufficientBalanceException(
                         "Insufficient balance. Current balance: " + senderWallet.getBalance()
                 );
             }
 
-            //  Move the money
             senderWallet.setBalance(senderWallet.getBalance().subtract(request.getAmount()));
             recipientWallet.setBalance(recipientWallet.getBalance().add(request.getAmount()));
 
             walletRepository.save(senderWallet);
             walletRepository.save(recipientWallet);
 
-            // Record the transfer as an immutable transaction log entry
             Transaction transaction = Transaction.builder()
                     .fromWallet(senderWallet)
                     .toWallet(recipientWallet)
@@ -135,19 +142,21 @@ public class TransferService {
                     .status(saved.getStatus())
                     .createdAt(saved.getCreatedAt())
                     .build();
+
         } finally {
-            lockService.unlock(lockKeyB, lockTokenB);
-            lockService.unlock(lockKeyA, lockTokenA);
+            // Always release locks, even if an exception was thrown
+            if (lockService != null) {
+                if (lockTokenB != null) lockService.unlock(lockKeyB, lockTokenB);
+                if (lockTokenA != null) lockService.unlock(lockKeyA, lockTokenA);
+            }
         }
-
-
     }
 
     public List<TransactionHistoryResponse> getTransactionHistory(User user) {
         List<Wallet> userWallets = walletRepository.findByUserId(user.getId());
 
         Set<Transaction> allTransactions = new LinkedHashSet<>();
-        for (Wallet wallet: userWallets) {
+        for (Wallet wallet : userWallets) {
             allTransactions.addAll(
                     transactionRepository.findByFromWalletIdOrToWalletId(wallet.getId(), wallet.getId())
             );
