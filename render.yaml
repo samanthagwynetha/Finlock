@@ -1,0 +1,37 @@
+services:
+  - type: web
+    name: finlock-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    envVars:
+      - key: SPRING_DATASOURCE_URL
+        fromDatabase:
+          name: finlock-db
+          property: connectionString
+      - key: SPRING_DATASOURCE_USERNAME
+        fromDatabase:
+          name: finlock-db
+          property: user
+      - key: SPRING_DATASOURCE_PASSWORD
+        fromDatabase:
+          name: finlock-db
+          property: password
+      - key: JWT_SECRET
+        value: finlock-super-secret-key-that-is-at-least-32-characters-long
+      - key: AES_KEY
+        value: gYI00qX+W10Xr/ProqszHwkZOCVgFLP3u+x4Nm40E9I=
+      - key: SPRING_DATA_REDIS_HOST
+        value: localhost
+      - key: SPRING_KAFKA_BOOTSTRAP_SERVERS
+        value: localhost:9092
+      - key: SPRING_KAFKA_LISTENER_MISSING_TOPICS_FATAL
+        value: "false"
+      - key: SPRING_PROFILES_ACTIVE
+        value: render
+
+databases:
+  - name: finlock-db
+    plan: free
+    databaseName: finlock
+    user: finlock_user

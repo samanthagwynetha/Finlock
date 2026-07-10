@@ -1,0 +1,10 @@
+# Render deployment profile — disables Redis and Kafka since they're not available on free tier
+spring:
+  kafka:
+    listener:
+      missing-topics-fatal: false
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
+      - org.springframework.kafka.annotation.EnableKafka
