@@ -25,13 +25,5 @@ services:
         value: localhost
       - key: SPRING_KAFKA_BOOTSTRAP_SERVERS
         value: localhost:9092
-      - key: SPRING_KAFKA_LISTENER_MISSING_TOPICS_FATAL
-        value: "false"
       - key: SPRING_PROFILES_ACTIVE
         value: render
-
-databases:
-  - name: finlock-db
-    plan: free
-    databaseName: finlock
-    user: finlock_user
