@@ -1,8 +1,27 @@
+
+
 # FinLock — Distributed Wallet System
 
 A backend REST API system simulating the core infrastructure of a digital payments platform, built as a portfolio project to demonstrate senior-level backend engineering skills.
 
 Think of it as the backend of GCash or Maya — handling user authentication, multi-currency wallets, atomic fund transfers, and real-time security controls.
+
+---
+
+## Live Demo
+
+🚀 **Live API:** https://finlock-api.onrender.com
+
+> Note: Free tier — may take 50 seconds to wake up on first request after inactivity.
+
+Try it:
+```bash
+curl -X POST https://finlock-api.onrender.com/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"fullName":"Your Name","email":"you@example.com","password":"password123"}'
+  
+```
+
 
 ---
 
