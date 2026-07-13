@@ -1,6 +1,6 @@
 
 
-# FinLock — Distributed Wallet System
+# FinLock: Distributed Wallet System
 
 A backend REST API system simulating the core infrastructure of a digital payments platform, built as a portfolio project to demonstrate senior-level backend engineering skills.
 
