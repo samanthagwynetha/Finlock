@@ -6,7 +6,6 @@ spring:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5433/finlock}
     username: ${SPRING_DATASOURCE_USERNAME:finlock_user}
     password: ${SPRING_DATASOURCE_PASSWORD:finlock_pass}
-    driver-class-name: org.postgresql.Driver
 
   jpa:
     hibernate:
@@ -24,8 +23,24 @@ spring:
 
   data:
     redis:
-      host: ${SPRING_DATA_REDIS_HOST:localhost}
-      port: ${SPRING_DATA_REDIS_PORT:6379}
+      url: ${REDIS_URL:redis://localhost:6379}
+#      host: ${SPRING_DATA_REDIS_HOST:localhost}
+#      port: ${SPRING_DATA_REDIS_PORT:6379}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+    prometheus:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
 
   kafka:
     bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
@@ -44,6 +59,7 @@ spring:
         spring.json.value.default.type: "com.finlock.finlock.transaction.event.TransactionEvent"
       listener:
         ack-mode: batch
+        missing-topics-fatal: false
 server:
   port: 8080
 
