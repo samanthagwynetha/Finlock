@@ -4,13 +4,13 @@
 
 A backend REST API system simulating the core infrastructure of a digital payments platform, built as a portfolio project to demonstrate senior-level backend engineering skills.
 
-Think of it as the backend of GCash or Maya — handling user authentication, multi-currency wallets, atomic fund transfers, and real-time security controls.
+Think of it as the backend of GCash or Maya handling user authentication, multi-currency wallets, atomic fund transfers, and real-time security controls.
 
 ---
 
 ## Live Demo
 
-🚀 **Live API:** https://finlock-api.onrender.com
+🌐 **Live API:** https://finlock-api.onrender.com
 
 > Note: Free tier — may take 50 seconds to wake up on first request after inactivity.
 
@@ -45,7 +45,7 @@ curl -X POST https://finlock-api.onrender.com/api/auth/register \
 
 ## Architecture
 
-FinLock uses a **Modular Monolith** architecture — one deployable Spring Boot application split into clean, loosely-coupled modules.
+FinLock uses a **Modular Monolith** architecture, one deployable Spring Boot application split into clean, loosely-coupled modules.
 
 ```
 src/main/java/com/finlock/finlock/
