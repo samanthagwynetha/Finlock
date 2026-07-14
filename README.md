@@ -191,17 +191,6 @@ Every sensitive action (login, transfer, rate limit hit) is recorded immutably w
 
 ---
 
-## Roadmap
-
-- [ ] Kafka event streaming for async transaction processing
-- [ ] Notification service (email/SMS on transfer)
-- [ ] Reconciliation batch job for balance integrity checks
-- [ ] GitHub Actions CI/CD pipeline
-- [ ] AWS deployment (EC2 + RDS + ElastiCache)
-- [ ] Prometheus + Grafana monitoring dashboard
-- [ ] Swagger / OpenAPI documentation
-
----
 
 ## What I Learned Building This
 
