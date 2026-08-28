@@ -2,8 +2,7 @@
 
 # FinLock: Distributed Wallet System
 
-A backend REST API system simulating the core infrastructure of a digital payments platform, built as a portfolio project to demonstrate senior-level backend engineering skills.
-
+A backend REST API system simulating the core infrastructure of a digital payments platform.
 Think of it as the backend of GCash or Maya handling user authentication, multi-currency wallets, atomic fund transfers, and real-time security controls.
 
 ---
