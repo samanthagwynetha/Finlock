@@ -1,5 +1,6 @@
 package com.finlock.finlock.config;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.annotation.EnableKafka;
@@ -12,6 +13,7 @@ import org.springframework.util.backoff.FixedBackOff;
 
 @Configuration
 @EnableKafka
+@ConditionalOnClass(name = "org.apache.kafka.clients.producer.KafkaProducer")
 public class KafkaConfig {
 
     @Bean
@@ -22,7 +24,6 @@ public class KafkaConfig {
 
         DeadLetterPublishingRecoverer recoverer =
                 new DeadLetterPublishingRecoverer(kafkaTemplate);
-
         DefaultErrorHandler errorHandler =
                 new DefaultErrorHandler(recoverer, new FixedBackOff(1000L, 2L));
 

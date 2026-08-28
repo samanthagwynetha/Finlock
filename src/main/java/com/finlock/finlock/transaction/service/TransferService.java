@@ -30,17 +30,16 @@ public class TransferService {
     private final WalletRepository walletRepository;
     private final UserRepository userRepository;
     private final TransactionRepository transactionRepository;
-    private final TransactionEventProducer eventProducer;
 
-    // Optional — only injected when Redis is available (local/production with Redis)
-    // On Render free tier (no Redis), this is null and locking is skipped gracefully
     @Autowired(required = false)
     private DistributedLockService lockService;
+
+    @Autowired(required = false)
+    private TransactionEventProducer eventProducer;
 
     @Transactional
     public TransferResponse transfer(User sender, TransferRequest request, String idempotencyKey) {
 
-        // Idempotency check — always first
         Optional<Transaction> existing = transactionRepository.findByIdempotencyKey(idempotencyKey);
         if (existing.isPresent()) {
             Transaction previous = existing.get();
@@ -74,14 +73,12 @@ public class TransferService {
                         "Recipient doesn't have a wallet for currency: " + request.getCurrency()
                 ));
 
-        // Consistent lock ordering to prevent deadlocks
         String firstId = senderWallet.getId().toString();
         String secondId = recipientWallet.getId().toString();
         boolean senderFirst = firstId.compareTo(secondId) < 0;
         String lockKeyA = senderFirst ? firstId : secondId;
         String lockKeyB = senderFirst ? secondId : firstId;
 
-        // Acquire locks only if Redis is available
         String lockTokenA = null;
         String lockTokenB = null;
 
@@ -123,15 +120,17 @@ public class TransferService {
 
             Transaction saved = transactionRepository.save(transaction);
 
-            eventProducer.publish(TransactionEvent.builder()
-                    .transactionId(saved.getId())
-                    .senderEmail(sender.getEmail())
-                    .recipientEmail(recipient.getEmail())
-                    .amount(saved.getAmount())
-                    .currency(saved.getCurrency())
-                    .status(saved.getStatus())
-                    .occurredAt(saved.getCreatedAt())
-                    .build());
+            if (eventProducer != null) {
+                eventProducer.publish(TransactionEvent.builder()
+                        .transactionId(saved.getId())
+                        .senderEmail(sender.getEmail())
+                        .recipientEmail(recipient.getEmail())
+                        .amount(saved.getAmount())
+                        .currency(saved.getCurrency())
+                        .status(saved.getStatus())
+                        .occurredAt(saved.getCreatedAt())
+                        .build());
+            }
 
             return TransferResponse.builder()
                     .transactionId(saved.getId())
@@ -144,7 +143,6 @@ public class TransferService {
                     .build();
 
         } finally {
-            // Always release locks, even if an exception was thrown
             if (lockService != null) {
                 if (lockTokenB != null) lockService.unlock(lockKeyB, lockTokenB);
                 if (lockTokenA != null) lockService.unlock(lockKeyA, lockTokenA);

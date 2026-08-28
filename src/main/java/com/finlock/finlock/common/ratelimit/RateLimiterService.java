@@ -3,6 +3,8 @@ package com.finlock.finlock.common.ratelimit;
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
 import io.github.bucket4j.Refill;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
@@ -10,6 +12,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 @Service
+@ConditionalOnBean(StringRedisTemplate.class)
 public class RateLimiterService {
     private final ConcurrentMap<String, Bucket> buckets = new ConcurrentHashMap<>();
     public Bucket resolveBucket(String key, int capacity, Duration refillPeriod){
