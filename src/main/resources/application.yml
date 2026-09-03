@@ -74,3 +74,10 @@ logging:
   level:
     org.flywaydb: DEBUG
 
+springdoc:
+  api-docs:
+    path: /openapi
+  swagger-ui:
+    path: /swagger-ui.html
+    url: /openapi
+    operationsSorter: method
